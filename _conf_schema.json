@@ -1,0 +1,82 @@
+{
+  "enabled": {
+    "description": "启用自主意识",
+    "hint": "开启后按下面的间隔与概率自行醒来；醒来不一定说话，由她自己判断。",
+    "type": "bool",
+    "default": false
+  },
+  "sessions": {
+    "description": "作用会话",
+    "hint": "每行一个 unified_msg_origin，例如 astrbot-mc:FriendMessage:<QQ号> 或 astrbot-mc:GroupMessage:<群号>。真实会话写在 data/config/astrbot_plugin_autonomy_config.json，不要提交进仓库。",
+    "type": "list",
+    "default": []
+  },
+  "interval_minutes": {
+    "description": "平均检查间隔（分钟）",
+    "hint": "每隔这么久掷一次骰子（实际等待有 ±10% 抖动）。默认 30。",
+    "type": "int",
+    "default": 30
+  },
+  "probability": {
+    "description": "基础概率",
+    "hint": "每次检查醒来的概率，0–1。默认 0.2，即平均每 150 分钟醒一次。",
+    "type": "float",
+    "default": 0.2
+  },
+  "mode": {
+    "description": "概率模式",
+    "hint": "fixed：始终用基础概率；adaptive：按距上次活动的时长调整（刚聊完更安静，久没人说话更想开口）。",
+    "type": "string",
+    "options": [
+      "fixed",
+      "adaptive"
+    ],
+    "labels": [
+      "固定",
+      "自适应"
+    ],
+    "default": "adaptive"
+  },
+  "recent_minutes": {
+    "description": "近期阈值（分钟）",
+    "hint": "距上次活动小于这个值，视为刚聊完。",
+    "type": "int",
+    "default": 20
+  },
+  "recent_multiplier": {
+    "description": "近期概率系数",
+    "hint": "刚聊完时概率乘以该系数，默认 0.15。",
+    "type": "float",
+    "default": 0.15
+  },
+  "distant_minutes": {
+    "description": "久未活动阈值（分钟）",
+    "hint": "距上次活动超过这个值，视为很久没说话。",
+    "type": "int",
+    "default": 360
+  },
+  "distant_multiplier": {
+    "description": "久未活动概率系数",
+    "hint": "很久没说话时概率乘以该系数，默认 1.5。",
+    "type": "float",
+    "default": 1.5
+  },
+  "sleep_windows": {
+    "description": "睡眠时段",
+    "hint": "逗号分隔的 HH:mm-HH:mm 区间，例如 23:30-08:30,12:00-13:00；此时段内不醒。留空表示不设。",
+    "type": "string",
+    "default": "23:30-08:30"
+  },
+  "timezone": {
+    "description": "时区",
+    "hint": "默认 Asia/Shanghai。",
+    "type": "string",
+    "default": "Asia/Shanghai"
+  },
+  "motivation": {
+    "description": "唤醒时交给她的那句话",
+    "hint": "醒来时只把这段交给主 agent，是否说话、说什么由她决定。",
+    "type": "text",
+    "default": "我现在要不要做点什么？结合当前情况、人格和记忆，自行决定。已有意图只是可选方向，没有意图也可以行动，也可以选择暂不行动。"
+  }
+}

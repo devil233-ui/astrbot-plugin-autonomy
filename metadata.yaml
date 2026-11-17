@@ -1,0 +1,15 @@
+name: astrbot_plugin_autonomy
+display_name: 自主意识（Autonomy）
+desc: 按时段与概率自行醒来，再由她自己判断要不要说话（迁移自 WhaleLife autonomy 插件）。
+short_desc: 没消息时也会自己醒，醒来不一定说话。
+author: 鲸屿
+repo: ""
+version: 0.1.0
+category: ai_tools
+tags:
+  - 自主意识
+  - 主动
+  - 定时
+support_platforms:
+  - aiocqhttp
+astrbot_version: ">=4.29.0"
