@@ -201,7 +201,7 @@ class AutonomyPlugin(star.Star):
             self._task = None
 
     # ---------- 观测 ----------
-    @filter.command("自主状态", alias={"/自主状态"})
+    @filter.command("自主状态")
     async def status(self, event):
         now = self._now()
         lines = [
