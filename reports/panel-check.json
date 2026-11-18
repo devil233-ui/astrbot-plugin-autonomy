@@ -1,0 +1,78 @@
+{
+  "viewport": {
+    "width": 1440,
+    "height": 2313
+  },
+  "documentHeight": 2313,
+  "horizontalOverflow": 0,
+  "badge": {
+    "text": "等待唤醒",
+    "tone": "idle"
+  },
+  "cards": [
+    {
+      "title": "唤醒方式",
+      "top": 116,
+      "left": 204,
+      "width": 1032,
+      "height": 890
+    },
+    {
+      "title": "当前状态",
+      "top": 1022,
+      "left": 204,
+      "width": 508,
+      "height": 549
+    },
+    {
+      "title": "最近判断",
+      "top": 1022,
+      "left": 728,
+      "width": 508,
+      "height": 325
+    },
+    {
+      "title": "她安排的唤醒",
+      "top": 1586,
+      "left": 204,
+      "width": 508,
+      "height": 320
+    },
+    {
+      "title": "当前会话的意图",
+      "top": 1586,
+      "left": 728,
+      "width": 508,
+      "height": 275
+    }
+  ],
+  "overlaps": [],
+  "clipped": [],
+  "counts": {
+    "intents": 2,
+    "runs": 3,
+    "sessions": 3
+  },
+  "values": {
+    "f-enabled": true,
+    "f-mode": "adaptive",
+    "f-interval": "30",
+    "f-probability": "20",
+    "f-timezone": "Asia/Shanghai",
+    "f-recent": "20",
+    "f-recent-mul": "0.15",
+    "f-distant": "360",
+    "f-distant-mul": "1.5",
+    "f-sleep": "23:30-08:30",
+    "f-motivation": "醒着就看看主人在不在，没有什么事就安静待着。",
+    "f-owner": "1250226509",
+    "f-session": "astrbot-mc:GroupMessage:685164226",
+    "f-allow-self": true,
+    "f-self-sleep": false
+  },
+  "footer": {
+    "now": "现在 2026/11/18 14:41:03",
+    "tz": "Asia/Shanghai"
+  },
+  "runHeadSample": "已结束 · 随机唤醒 · 这轮不动 · 14:31"
+}

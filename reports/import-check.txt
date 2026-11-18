@@ -1,0 +1,13 @@
+# 容器内冒烟与工具注册（2026-11-18 17:09:20 CST）
+# 命令：docker exec -i -e PYTHONPATH=/AstrBot astrbot python /AstrBot/data/plugins/astrbot_plugin_autonomy/tests/smoke_import.py
+
+[17:09:29.958] [Core] [INFO] [provider.func_tool_manager:393]: Added llm tool: autonomy_schedule
+[17:09:29.972] [Core] [INFO] [provider.func_tool_manager:393]: Added llm tool: autonomy_intents
+[17:09:29.978] [Core] [INFO] [provider.func_tool_manager:393]: Added llm tool: autonomy_finish
+[17:09:29.979] [Core] [INFO] [star.base:44]: Plugin AutonomyPlugin log level: INFO.
+PAYLOAD {"sender_id": "astrbot", "origin": "astrbot_plugin_autonomy", "run_id": "fe092594db48", "session": "a:b:c"}
+DERIVED_ROLE admin
+[17:09:29.984] [Plug] [INFO] [astrbot_plugin_autonomy.main:175]: [autonomy] manual 唤起 a:b:c（job=job1，run=fe092594db48）
+SMOKE_OK {"enabled": true, "interval_minutes": 30, "probability": 0.2, "mode": "adaptive", "recent_minutes": 20, "recent_multipli
+SNAP_KEYS ['current', 'intents', 'last_activity_at', 'next_check_at', 'now', 'plugin', 'probability', 'queued', 'running', 'runs', 'self_wake', 'sessions', 'settings', 'sleep_windows', 'sleeping', 'timezone']
+WEB_APIS 5

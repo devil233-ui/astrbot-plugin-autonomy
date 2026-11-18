@@ -1,0 +1,26 @@
+# 排队超时收尾：对现场状态文件的实跑记录
+
+状态文件：/root/AstrBot/data/plugin_data/astrbot_plugin_autonomy/state.json
+备份：/root/AstrBot/data/plugin_data/astrbot_plugin_autonomy/backup/state.before-expire-20261118-173603.json
+
+## 第一次（17:43，进程外改写，无效）
+- 做法：docker exec 起独立进程，调 core.expire_stale_runs 后 core.save_state 写回文件。
+- 结果：文件里两条记录当场变成 failed，但运行中的插件仍持着旧内存副本，17:54:07 一次例行保存把它们又写回 queued。
+- 教训：状态文件的修复必须走运行中的插件进程，进程外直接改文件会被下一次保存覆盖。
+
+## 第二次（18:22:44，插件进程内执行，已生效）
+- 先 POST /api/v1/plugins/astrbot_plugin_autonomy/reload 让插件加载当前 main.py（此前进程里跑的是加过期收尾之前的版本，所以 18:21 那次 tick 没有收尾）。
+- 再 GET /api/v1/plugins/extensions/astrbot_plugin_autonomy/state?umo=astrbot-mc:GroupMessage:685164226，走 snapshot() 的 _expire_stale 分支并自存盘。
+- 日志：容器内 API 返回 200，插件随即写入状态文件（mtime 18:22:44）。
+
+## 收尾后的两条记录
+- 4e8066c0538f status=failed decision=no_action started_at=2026-11-18T16:27:17+08:00 ended_at=2026-11-18T18:22:44+08:00
+  reason=唤醒没有真正开始：任务没起来（平台适配器不可用或任务被删）
+- db04c03a9c38 status=failed decision=no_action started_at=2026-11-18T16:56:09+08:00 ended_at=2026-11-18T18:22:44+08:00
+  reason=唤醒没有真正开始：任务没起来（平台适配器不可用或任务被删）
+
+## 两条记录为何卡住
+- 16:27:17 与 16:56:09 两次 random 唤起：平台实例 astrbot-mc 当时 enable=False，唤醒在 agent_wakeup.py:40 抛 Platform adapter not found，on_agent_done 从未被调用，记录停在 queued。
+- 插件运行期会在 _tick 与 snapshot 前调用同一个 core.expire_stale_runs（main.py:_expire_stale），排队超过 STALE_QUEUE_MINUTES=10 分钟即判 failed 并写清缘由。
+
+state.json sha256: 168d4e5dc95885fed6263f536fee91eb4a26d265a49e3e2181d2dc7779ae432a

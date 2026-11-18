@@ -1,0 +1,31 @@
+# 判断可追踪 · 钩子联动验证（2026-11-18 17:08:26 CST）
+
+## 宿主链路（代码可核）
+- `astrbot/core/agent_wakeup.py:48`：`source=source`（cron 传 `"cron"`）。
+- `astrbot/core/agent_wakeup.py:49`：`source_id=source_id`（cron 传 job_id）。
+- `astrbot/core/agent_wakeup.py:50`：`role=role`（由 payload.sender_id 是否在 admins_id 决定）。
+- `astrbot/core/agent/runners/tool_loop_agent_runner.py:270`：一轮结束调用 `agent_hooks.on_agent_done(self.run_context, self.final_llm_resp)`。
+- `astrbot/core/astr_agent_runtime/hooks.py:65-73`：`on_agent_done` 用 `call_event_hook(run_context.context.event, EventType.OnAgentDoneEvent, run_context, llm_response)` 派发；事件对象就是唤醒事件，`source/source_id` 原样带出。
+- `astrbot/core/pipeline/context_utils.py:97-130`：按事件挑 handler（`plugins_name` 过滤、`star_map` 判激活）、记录 trace；实际执行 handler 的 `await handler.handler(event, *args)` 在 `:128`。
+- `astrbot/core/star/star_manager.py:1285-1290`：装载插件时把 handler 绑成 `functools.partial(raw_handler, plugin)`，本轮测试按同样方式绑定。
+
+## 容器内实跑（stub context + 真实 call_event_hook，Python 3.12.16）
+命令：`docker exec -i -e PYTHONPATH=/AstrBot astrbot python .../tests/hook_trace.py`
+
+| 场景 | 结果 |
+| --- | --- |
+| 注册表按 OnAgentDoneEvent 查 | ['data.plugins.astrbot_plugin_autonomy.main__on_agent_done'] |
+| 唤起（manual） | status=queued，payload.sender_id=astrbot，job_id=job1 |
+| 派发 begin（source=cron，job 命中） | status=running，trace=[['handler_start', '_on_agent_begin', 'running'], ['handler_end', '_on_agent_begin', 'success']] |
+| 派发 done（completed，未调 autonomy_finish） | status=completed，reason=「未调用 autonomy_finish，按已结束处理」，trace=[['handler_start', '_on_agent_done', 'running'], ['handler_end', '_on_agent_done', 'success']] |
+| 派发 done（未知 job_id，另有 queued 运行在排） | 该运行 status=queued（未被误收尾） |
+| 派发 done（source=message，非 cron） | status=queued（保持 queued） |
+| autonomy_finish 先收尾 | status=completed，decision=no_action，reason=「主人在改代码，这轮不动」 |
+| 之后补一个迟到的 done | status/decision/reason 不变，ended_at 已补：True |
+| 派发 done（run_end_reason=error） | status=failed，reason=「本轮出错：boom」 |
+
+## 结论
+- cron 唤醒的 job id 能把「开始」和「结束」准确落到对应运行记录：命中时 queued→running→completed/failed；未知 job、非 cron 事件都不动记录。
+- 模型没调用 autonomy_finish 时，钩子按 run_end_reason 兜底写状态与原因，「最近判断」不会出现只有开始没有落尾的脏运行。
+- 显式收尾后迟到的 done 不会覆盖既定与理由，只补结束时间（实跑覆盖）。
+- 本次实跑走的是宿主真实派发函数与真实 handler 绑定；runner 侧「结束时调用 on_agent_done」仍是代码行核对（tool_loop_agent_runner.py:270），未在容器里跑一整轮真实 agent。

@@ -1,0 +1,62 @@
+# autonomy 插件校验汇总（2026-11-18 17:10 CST）
+
+## 1. 纯逻辑单元测试
+- 环境：宿主 Python 3.14.10，`python3 -m unittest discover -s tests -p 'test_*.py'`
+- 结果：Ran 34 tests，OK（0 失败 0 错误）；其中 StaleQueueTest 三条覆盖「排队太久判失败、刚排队不动、running/completed 不动」
+
+## 2. 容器内加载与工具注册
+- 环境：容器 astrbot，Python 3.12.16，`PYTHONPATH=/AstrBot`
+- 命令：`docker exec -i -e PYTHONPATH=/AstrBot astrbot python .../tests/smoke_import.py`
+- 时间：文件头 17:09:20 是起跑时刻，日志行 17:09:29，文件写入 17:09:31
+- 结果：Added llm tool: autonomy_schedule / autonomy_intents / autonomy_finish；WEB_APIS 5；SMOKE_OK
+- 读数性质：`PAYLOAD {"sender_id": "astrbot", "origin": "astrbot_plugin_autonomy", ...}` 是插件 payload 原文；`DERIVED_ROLE admin` 是冒烟脚本内**复刻**的判定式，只说明 payload 会命中哪一侧，不代替宿主读数——宿主读数见第 3 节
+- 其余断言：run_id 与状态文件一致、snapshot.queued=1、apply_settings 合法/非法两条路径
+
+## 3. 宿主侧角色读数
+- 命令：`docker exec -i -e PYTHONPATH=/AstrBot astrbot python .../tests/role_probe.py`（reports/role-probe.txt，2026-11-18 17:11:31–17:11:41 CST）
+- 输入取自部署现场：`ADMINS ['astrbot', '1250226509']` 读的是 `/AstrBot/data/cmd_config.json` 的 admins_id，`UMO astrbot-mc:FriendMessage:1250226509` 与 `OWNER astrbot` 读的是 `/AstrBot/data/config/astrbot_plugin_autonomy_config.json`（测试里不写死名单与会话）
+- 做法：直接调用宿主 `CronJobManager._run_active_agent_job`（role 判定、cfg 读取都用宿主代码），只把 `wake_main_agent` 换成捕获器看它拿到的 role；`get_config`/`get_platform_inst` 是必需的最小 stub，返回的 admins 就是上面读到的真实列表
+- 四格：插件当前 payload（sender_id=astrbot）→ admin；主人 QQ 作 sender_id → admin；修复前 payload（无 sender_id）→ member；非管理员 sender_id → member；末行 ROLE_PROBE_OK
+- 判定式位置：`astrbot/core/cron/manager.py:472-479`（role 三元式）；`manager.py:480-490` 调 `wake_main_agent(... role=role)`；透传在 `astrbot/core/agent_wakeup.py:48-50`
+
+## 4. 配置 schema 与核心一致性
+- schema 键数：15；PANEL_KEYS：14；缺失：无
+- schema 默认值与 core.DEFAULTS 一致（sleep_windows 取空串，与运行默认一致）
+
+## 5. 面板渲染核查（stub bridge，无宿主）
+- 渲染窗口 1440x2400 出自 `tests/panel_preview.py:196` 的 `--window-size`；`reports/panel-check.json` 只记视口与文档高：viewport 1440x2313、documentHeight 2313
+- 横向溢出：0；卡片重叠：[]；被裁切元素：[]
+- 徽标：等待唤醒 / idle
+- 卡片矩形：唤醒方式 @(204,116) 1032x890；当前状态 @(204,1022) 508x549；最近判断 @(728,1022) 508x325；她安排的唤醒 @(204,1586) 508x320；当前会话的意图 @(728,1586) 508x275
+- 条数：意图 2、判断 3、会话 3
+- 表单回填：14 项全中（概率按百分比显示 20、owner_id、两个开关状态与配置一致）
+- 页脚与行样例取自 fixture 固定时刻：页脚「现在 2026/11/18 14:41:03 · Asia/Shanghai」，判断行「已结束 · 随机唤醒 · 这轮不动 · 14:31」——这是 stub 页面的钉死时间，不是渲染时刻；渲染时刻见下一行
+- 证据时点：预览图 17:10:00、DOM 探针 17:10:04（fixture 时间仍为 14:41:03），均晚于最后改动的源文件（views/autonomy/app.js 16:06:32、main.py 与 core.py 17:0x 之后的改动不进入面板渲染）
+
+## 6. 产物
+- reports/autonomy-panel-preview.png（1440x2400，Chromium 按 tests/panel_preview.py 渲染，280413 B）
+- reports/panel-check.json（DOM 探针原始输出）
+- reports/import-check.txt（容器 import 冒烟摘录）
+- reports/role-probe.txt（宿主 role 读数）
+- reports/hook-trace.txt（钩子联动六格，17:08:26 重跑）
+- 镜像约定：二进制只保留远端一份；按 sha256 对齐镜像，不放同名副本图
+
+## 7. 实机状态备注
+- 两次实机唤醒都失败在平台适配上：16:27:17（run 4e8066c0538f）与 16:56:09（run db04c03a9c38）均在 `wake_main_agent`（agent_wakeup.py:40）抛 `Platform adapter 'astrbot-mc' not found`，宿主在 `cron/manager.py:416` 记 `Cron job ... failed`；根因是 data/cmd_config.json 里唯一实例 astrbot-mc 的 enable=False（16:20:52 被 terminate），与 payload/role 判定无关
+- 这两次失败也暴露一个旧缺陷：唤醒没起来时没人回调 on_agent_done，运行记录会一直挂 queued。已补 `core.expire_stale_runs`（STALE_QUEUE_MINUTES=10）：排队超过 10 分钟仍未开始的运行记 failed + reason「唤醒没有真正开始：任务没起来（平台适配器不可用或任务被删）」，在 _tick 与面板 snapshot 前各清一次
+- 所以「真实 cron 轮次以 admin 身份跑通」仍未经实机验证，作为交给人决定的事项（先启用平台实例再跑一次）
+
+## 8. 交付文件指纹（sha256）
+- reports/autonomy-panel-preview.png：976324af3770f7e4fe21f17a96b106404bdbedc4693345311d6a2f1fbe6d0ff6
+- reports/panel-check.json：959102f50ad4883d52f7f3c59c72b1102ea4edbaebba67ca2b63771c39c4e08b
+- reports/import-check.txt：192e70dee781c2f685fbfc7869567bfb9ca7b126602ae5a05811bd6196b422b7
+- reports/role-probe.txt：068b3b207fe5628111601e08e3c04dd3e7771838907b5118e9c123602a12b696（693 B）
+- reports/hook-trace.txt：120d037b1cd26a1df7e4002f0ef612a12d3ed51e61ae686bc13000497daf9259
+- tests/role_probe.py：0095f9e801aa6251ec5391f0c5c0e831233ae86857618b61128f4ab791a1051b
+- tests/hook_trace.py：c1dd80e203b0f8782a9cb153039a2c7c237d22dc6933f340408d7f213d2453e1
+- tests/test_core.py：30d0fee86ebbee47aec002b0f1dff1c9b97481ab410027ed1746c68503da8ec2
+- tests/smoke_import.py：ba3a099ee383fec00222d442c3c473f3dd595e6f01e8f12221c4f8f20572158c
+- page_api.py：b728ee93aa9b01a557707a286ba8e0d00431ae4be7d89db1bc458aa68aa229da
+- views/autonomy/app.js：13ee8a2cf9bdbc207718cf3db4fcae119b9d61b55d82e743463e8b77740f807a
+- main.py：0cf30fad966579de6d5e4337f3f064d9c5c5e72699dd27e900049f316568f5f4
+- core.py：9e3ad5d20dba6620d3073e624b1c08a3945c93691f02b8fc7fa7e85140420eaf

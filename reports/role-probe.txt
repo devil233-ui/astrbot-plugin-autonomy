@@ -1,0 +1,10 @@
+# 宿主侧 role 读数（直接调用 CronJobManager._run_active_agent_job）
+# 命令：docker exec -i -e PYTHONPATH=/AstrBot astrbot python /AstrBot/data/plugins/astrbot_plugin_autonomy/tests/role_probe.py
+# 时间：2026-11-18 17:11:31–17:11:41 CST（起跑–写入）
+
+ADMINS ['astrbot', '1250226509'] UMO astrbot-mc:FriendMessage:1250226509 OWNER astrbot
+插件当前 payload（owner_id=astrbot）: role='admin' sender_id='astrbot' error=None
+主人 QQ 作为 sender_id: role='admin' sender_id='1250226509' error=None
+修复前的 payload（不带 sender_id）: role='member' sender_id=None error=None
+非管理员 sender_id: role='member' sender_id='999999' error=None
+ROLE_PROBE_OK

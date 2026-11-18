@@ -65,7 +65,7 @@
     "description": "睡眠时段",
     "hint": "逗号分隔的 HH:mm-HH:mm 区间，例如 23:30-08:30,12:00-13:00；此时段内不醒。留空表示不设。",
     "type": "string",
-    "default": "23:30-08:30"
+    "default": ""
   },
   "timezone": {
     "description": "时区",
@@ -78,5 +78,23 @@
     "hint": "醒来时只把这段交给主 agent，是否说话、说什么由她决定。",
     "type": "text",
     "default": "我现在要不要做点什么？结合当前情况、人格和记忆，自行决定。已有意图只是可选方向，没有意图也可以行动，也可以选择暂不行动。"
+  },
+  "owner_id": {
+    "description": "唤醒身份（管理员用户 ID）",
+    "hint": "自主唤醒时会用这个身份去申请权限。它必须写在 AstrBot 的 admins_id 里（data/cmd_config.json），才会被判成管理员；填错则唤醒轮次只有普通成员权限，shell、文件读写等工具会报 Permission denied。",
+    "type": "string",
+    "default": "astrbot"
+  },
+  "allow_self_wake": {
+    "description": "允许她安排下次唤醒",
+    "hint": "开启后，她可以在交流或自主判断中设置一次指定时间的唤醒，也可改期、取消。到点仍由她决定是否行动。",
+    "type": "bool",
+    "default": false
+  },
+  "self_wake_during_sleep": {
+    "description": "允许自行唤醒突破睡眠时段",
+    "hint": "默认关闭。关闭时，设在睡眠时段的请愿会失败，工具会告诉她原因。仅用于她自己安排的唤醒，不影响随机唤醒。",
+    "type": "bool",
+    "default": false
   }
 }

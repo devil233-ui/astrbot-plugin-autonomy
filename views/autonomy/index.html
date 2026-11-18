@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="light">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>自主性</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="page" id="page">
+      <header class="hero">
+        <div>
+          <h1>自主性</h1>
+          <p class="lead">给她一次自行决定的机会。行动、暂不行动，都可以成为一次完整的判断。</p>
+        </div>
+        <span class="badge" id="state-badge" data-tone="idle">读取中</span>
+      </header>
+
+      <div class="grid">
+        <section class="card card-wide">
+          <h2>唤醒方式</h2>
+          <p class="hint">
+            先设置参数再启用；暂停此开关保留意图，已有判断继续。宿主停用插件则撤下全部能力。
+          </p>
+
+          <label class="switch">
+            <input type="checkbox" id="f-enabled" />
+            <span class="switch-track"><span class="switch-dot"></span></span>
+            <span class="switch-text">启用自动唤醒（含明确时间约定）</span>
+          </label>
+
+          <div class="row">
+            <label class="field">
+              <span>概率模式</span>
+              <select id="f-mode">
+                <option value="adaptive">按活动间隔调整</option>
+                <option value="fixed">固定概率</option>
+              </select>
+            </label>
+            <label class="field">
+              <span>平均检查间隔（分钟）</span>
+              <input type="number" id="f-interval" min="1" max="1440" step="1" />
+            </label>
+          </div>
+          <p class="hint" id="hint-interval">每次随机等待 15 ~ 45 分钟，平均 30 分钟检查一次。</p>
+
+          <div class="row">
+            <label class="field">
+              <span>基础成功概率（%）</span>
+              <input type="number" id="f-probability" min="0" max="100" step="1" />
+            </label>
+            <label class="field">
+              <span>时区</span>
+              <input type="text" id="f-timezone" placeholder="Asia/Shanghai" />
+            </label>
+          </div>
+
+          <div class="row">
+            <label class="field">
+              <span>近期活动阈值（分钟）</span>
+              <input type="number" id="f-recent" min="0" step="1" />
+            </label>
+            <label class="field">
+              <span>近期概率乘数</span>
+              <input type="number" id="f-recent-mul" min="0" step="0.01" />
+            </label>
+          </div>
+
+          <div class="row">
+            <label class="field">
+              <span>长时间未活动阈值（分钟）</span>
+              <input type="number" id="f-distant" min="0" step="1" />
+            </label>
+            <label class="field">
+              <span>长时间概率乘数</span>
+              <input type="number" id="f-distant-mul" min="0" step="0.01" />
+            </label>
+          </div>
+          <p class="hint">
+            两个阈值之间使用基础概率；刚聊完按近期乘数降温，久没人说话按长时乘数上调，最终概率最高 100%。
+          </p>
+
+          <label class="field">
+            <span>睡眠时段（留空表示不设）</span>
+            <input type="text" id="f-sleep" placeholder="23:30-08:30；多段用逗号分隔" />
+          </label>
+
+          <label class="field">
+            <span>唤醒动机（醒来时交给她的那句话）</span>
+            <textarea id="f-motivation" rows="3"></textarea>
+          </label>
+
+          <label class="field">
+            <span>唤醒身份（主人的用户 ID，需在 AstrBot 管理员ID 里）</span>
+            <input type="text" id="f-owner" placeholder="例如 QQ 号或 astrbot" />
+          </label>
+
+          <div class="actions">
+            <button class="btn primary" id="btn-save">保存设置</button>
+            <button class="btn" id="btn-reload">放弃改动</button>
+            <span class="save-note" id="save-note"></span>
+          </div>
+        </section>
+
+        <section class="card">
+          <h2>当前状态</h2>
+          <label class="field">
+            <span>当前会话</span>
+            <select id="f-session"></select>
+          </label>
+          <p class="hint">会话来自插件配置里的 sessions 列表；面板只切换查看对象，不改调度范围。</p>
+
+          <div class="stats">
+            <div class="stat">
+              <span class="stat-label">当前普通唤醒概率</span>
+              <strong id="s-probability">—</strong>
+            </div>
+            <div class="stat">
+              <span class="stat-label">上次活动</span>
+              <strong id="s-activity">—</strong>
+            </div>
+            <div class="stat">
+              <span class="stat-label">本次抽取的检查时间</span>
+              <strong id="s-next">—</strong>
+            </div>
+            <div class="stat">
+              <span class="stat-label">排队 / 正在判断</span>
+              <strong id="s-queue">—</strong>
+            </div>
+          </div>
+
+          <div class="scheduled">
+            <span class="stat-label">她的下次安排</span>
+            <strong id="s-self-wake">尚未安排</strong>
+            <span class="hint" id="s-self-note"></span>
+          </div>
+
+          <div class="actions">
+            <button class="btn primary" id="btn-wake">现在判断一次</button>
+            <button class="btn danger" id="btn-stop">结束并取消排队</button>
+          </div>
+          <p class="hint">
+            手动判断跳过概率与时段，忙碌时排队；连续点击会合并为一次等待机会。结束并取消排队会清掉排队任务并叫停正在跑的那轮。
+          </p>
+        </section>
+
+        <section class="card">
+          <h2>最近判断</h2>
+          <ul class="runs" id="run-list"></ul>
+          <p class="empty" id="run-empty">还没有判断记录。每次自主唤醒结束都会在这里留下一条。</p>
+        </section>
+        <section class="card">
+          <h2>她安排的唤醒</h2>
+          <label class="switch">
+            <input type="checkbox" id="f-allow-self" />
+            <span class="switch-track"><span class="switch-dot"></span></span>
+            <span class="switch-text">允许她安排下次唤醒</span>
+          </label>
+          <p class="hint">
+            开启后，她可在交流或自主判断中设置一次唤醒时间，也可改期、取消。到点不掷骰子，仍由她决定是否行动。
+          </p>
+
+          <label class="switch">
+            <input type="checkbox" id="f-self-sleep" />
+            <span class="switch-track"><span class="switch-dot"></span></span>
+            <span class="switch-text">允许自行唤醒突破睡眠时段</span>
+          </label>
+          <p class="hint">默认关闭。关着时，设在睡眠时段的请求会失败，工具会告诉她原因。</p>
+
+          <div class="actions">
+            <button class="btn" id="btn-self-cancel">取消她的安排</button>
+            <span class="save-note" id="self-note"></span>
+          </div>
+          <p class="hint">需要同时开启上方「自动唤醒」总开关；每个会话保留一次安排，只唤醒当前会话。</p>
+        </section>
+
+        <section class="card">
+          <h2>当前会话的意图</h2>
+          <p class="hint">由她通过工具读取和维护，完成或明确放弃后移除，真实结果留在记忆里。</p>
+          <ul class="intents" id="intent-list"></ul>
+          <p class="empty" id="intent-empty">暂时没有意图，她仍然可以自主行动。</p>
+        </section>
+
+      </div>
+
+      <footer class="foot">
+        <span id="foot-now"></span>
+        <span class="dot">·</span>
+        <span id="foot-tz"></span>
+      </footer>
+    </div>
+    <script src="app.js"></script>
+  </body>
+</html>
